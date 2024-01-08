@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pong</title>
+  </head>
+  <body>
+    <a href="/">HOME</a>
+
+    <canvas
+      id="drawCanvas"
+      width="{{game_width}}"
+      height="{{game_height}}"
+      style="border: 1px solid #000"
+    ></canvas>
+
+    <button onclick="ready()">READY</button>
+
+    <script>
+      const socket = new WebSocket(
+        "ws://localhost:3030/ws/{{game_id}}/{{player_id}}"
+      );
+      const canvas = document.getElementById("drawCanvas");
+      const ctx = canvas.getContext("2d");
+
+      const player = {
+        x: Number("{{player_start_x}}"),
+        y: Number("{{player_start_y}}"),
+      };
+      const opponent = {
+        x: Number("{{opponent_start_x}}"),
+        y: Number("{{opponent_start_y}}"),
+      };
+      const ball = {
+        x: Number("{{ball_start_x}}"),
+        y: Number("{{ball_start_y}}"),
+      };
+      const score = {
+        p1: 0,
+        p2: 0,
+      };
+
+      const player_width = Number("{{player_width}}");
+      const player_height = Number("{{player_height}}");
+      const ball_radius = Number("{{ball_radius}}");
+
+      function resetPositions() {
+        player.x = Number("{{player_start_x}}");
+        player.y = Number("{{player_start_y}}");
+        opponent.x = Number("{{opponent_start_x}}");
+        opponent.y = Number("{{opponent_start_y}}");
+        ball.x = Number("{{ball_start_x}}");
+        ball.y = Number("{{ball_start_y}}");
+      }
+
+      socket.addEventListener("message", (event) => {
+        handleMessage(JSON.parse(event.data));
+      });
+
+      function handleMessage({ event_body, event_type }) {
+        switch (event_type) {
+          case "update_screen":
+            return updateScreen(event_body);
+          case "end_point":
+            return endPoint(event_body);
+        }
+      }
+
+      function updateScreen({ ball_x, ball_y, opponent_y }) {
+        ball.x = ball_x;
+        ball.y = ball_y;
+        opponent.y = opponent_y;
+      }
+
+      function endPoint({ p1_score, p2_score }) {
+        score.p1 = p1_score;
+        score.p2 = p2_score;
+        resetPositions();
+      }
+
+      const keys = {
+        ArrowUp: false,
+        ArrowDown: false,
+      };
+
+      document.addEventListener("keydown", (event) =>
+        handleKeyPress(event, true)
+      );
+      document.addEventListener("keyup", (event) =>
+        handleKeyPress(event, false)
+      );
+
+      function handleKeyPress({ key }, isPressed) {
+        switch (key) {
+          case "ArrowUp":
+            keys.ArrowUp = isPressed;
+            break;
+          case "ArrowDown":
+            keys.ArrowDown = isPressed;
+            break;
+        }
+      }
+
+      function drawBall(x, y) {
+        ctx.beginPath();
+        ctx.arc(ball.x, ball.y, ball_radius, 0, 2 * Math.PI);
+        ctx.fillStyle = "blue";
+        ctx.fill();
+        ctx.stroke();
+      }
+
+      function drawPlayer1() {
+        ctx.fillStyle = "blue";
+        ctx.fillRect(player.x, player.y, player_width, player_height);
+      }
+
+      function drawPlayer2() {
+        ctx.fillStyle = "blue";
+        ctx.fillRect(opponent.x, opponent.y, player_width, player_height);
+      }
+
+      function drawScore() {
+        ctx.font = "48px serif";
+        ctx.textAlign = "center";
+        ctx.fillText(
+          `${score.p1}:${score.p2}`,
+          Number("{{game_width}}") / 2,
+          50
+        );
+      }
+
+      function draw() {
+        const speed = 8;
+
+        if (keys.ArrowUp) {
+          const prev = player.y;
+          player.y = Math.max(0, player.y - speed);
+          if (prev !== player.y)
+            socket.send(
+              JSON.stringify({
+                event_type: "move",
+                event_body: {
+                  y: player.y,
+                },
+              })
+            );
+        }
+        if (keys.ArrowDown) {
+          const prev = player.y;
+          player.y = Math.min(canvas.height - player_height, player.y + speed);
+          if (prev !== player.y)
+            socket.send(
+              JSON.stringify({
+                event_type: "move",
+                event_body: {
+                  y: player.y,
+                },
+              })
+            );
+        }
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        drawBall();
+        drawPlayer1();
+        drawPlayer2();
+        drawScore();
+        requestAnimationFrame(draw);
+      }
+
+      draw();
+
+      function ready() {
+        socket.send(
+          JSON.stringify({
+            event_type: "ready",
+            event_body: {
+              player_id: "{{player_id}}",
+            },
+          })
+        );
+      }
+    </script>
+  </body>
+</html>
