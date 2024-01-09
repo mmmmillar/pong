@@ -7,7 +7,7 @@ mod templates;
 
 use game::Game;
 use lazy_static::lazy_static;
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::HashMap, net::SocketAddr, sync::Arc};
 use tokio::sync::RwLock;
 use warp::Filter;
 
@@ -40,10 +40,18 @@ async fn main() {
         .and_then(handlers::ws_handler);
 
     let routes = home_page
+        .or(hello_page)
         .or(game_page)
         .or(create_game_route)
         .or(ws_route)
         .with(warp::log("pong"));
 
-    warp::serve(routes).run(([127, 0, 0, 1], 3030)).await;
+    let host = std::env::var("HOST").unwrap_or_else(|_| "0.0.0.0".to_string());
+    let addr = format!("{}:{}", host, 3030)
+        .parse::<SocketAddr>()
+        .expect("Invalid address format");
+
+    eprintln!("Pong server running on {:?}", addr);
+
+    warp::serve(routes).run(addr).await;
 }
