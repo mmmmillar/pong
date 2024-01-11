@@ -48,8 +48,7 @@ async fn main() {
         .or(ws_route)
         .with(warp::log("pong"));
 
-    let host = std::env::var("HOST").unwrap_or_else(|_| "0.0.0.0".to_string());
-    let addr = format!("{}:{}", host, 3030)
+    let addr = format!("{}:{}", "0.0.0.0", 3030)
         .parse::<SocketAddr>()
         .expect("Invalid address format");
 

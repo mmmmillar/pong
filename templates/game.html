@@ -19,7 +19,7 @@
 
     <script>
       const socket = new WebSocket(
-        "ws://localhost:3030/ws/{{game_id}}/{{player_id}}"
+        `ws://${window.location.host}/ws/{{game_id}}/{{player_id}}`
       );
       const canvas = document.getElementById("drawCanvas");
       const ctx = canvas.getContext("2d");
