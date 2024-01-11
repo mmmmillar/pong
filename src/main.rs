@@ -23,6 +23,8 @@ async fn main() {
 
     let home_page = warp::path::end().and(warp::fs::file("templates/index.html"));
 
+    let hello_page = warp::path("hello").and(warp::fs::file("templates/hello.html"));
+
     let game_page = warp::path("games")
         .and(warp::path::param())
         .map(|game_id: String| game_id)
